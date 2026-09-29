@@ -3,8 +3,7 @@
 **What must be true.** `doc/decisions.md` states, as an accepted risk, what a homeserver holding the
 conversation exposes, why it stays, and what would change the answer.
 
-The requirement is `sokar-project` PJ02 ([index](https://github.com/sokar-ai/sokar-project/blob/main/issues/README.md)),
-where the operator settled it: no end-to-end encryption, on a homeserver the operator runs.
+The operator settled it: no end-to-end encryption, on a homeserver the operator runs.
 
 ## What it covers
 

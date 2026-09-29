@@ -125,9 +125,9 @@ one copy.
 ## What this repository is
 
 The Matrix transport: it carries messages Sokar's filter has let through between tasks, over a
-Matrix homeserver, and it is the only channel Sokar has for that. The requirement it builds is
-`sokar-project` PJ02 ([index](https://github.com/sokar-ai/sokar-project/blob/main/issues/README.md));
-its open question about a homeserver shared by several projects is `core`'s to answer.
+Matrix homeserver, and it is the only channel Sokar has for that. Sokar's side of it - the peer table,
+a task's account, the token, the egress, and whether one homeserver per machine is a bridge between
+projects - is `sokar` B86, with the contract this transport keeps.
 
 - **A transport decides nothing and never parses a message.** What may pass is the filter's, in
   `sokar-message-sluice`. A transport that could judge a message would make "was this checked?"

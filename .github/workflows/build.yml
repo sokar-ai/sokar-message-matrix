@@ -1,0 +1,63 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# A newer push makes the running build's result moot, so it stops rather than spending the minutes.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.m2/wrapper
+          key: maven-${{ hashFiles('pom.xml', '.mvn/wrapper/maven-wrapper.properties') }}
+          restore-keys: maven-
+
+      # rpmbuild for the .rpm, zlib's headers for the native image; podman is on the runner already.
+      - name: Install what the packages are built with
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq rpm zlib1g-dev
+
+      # The runner's own Java only runs the tools; nothing it compiles is published.
+      - name: Resolve the build's tools
+        env:
+          JAVA_HOME: ${{ env.JAVA_HOME_25_X64 }}
+        run: |
+          test -n "$JAVA_HOME" || { echo "the runner has no Java 25 (JAVA_HOME_25_X64)"; exit 1; }
+          ./mvnw -B -ntp -q -Pci-tools dependency:build-classpath -Dmdep.outputFile="$RUNNER_TEMP/ci-tools.classpath"
+
+      - name: Install the pinned GraalVM
+        run: >-
+          "$JAVA_HOME_25_X64/bin/java" -cp "$(cat "$RUNNER_TEMP/ci-tools.classpath")"
+          org.fuin.sokar.machines.Main jdk --github
+
+      - name: Refuse an action that is not pinned
+        run: >-
+          java -cp "$(cat "$RUNNER_TEMP/ci-tools.classpath")"
+          org.fuin.sokar.release.Main check-actions .github
+
+      - name: Build, test against the native executable, and package
+        run: >-
+          ./mvnw -B -ntp -Pnative verify
+          -Dsokar.snapshot.run=${{ github.run_number }} -Dsokar.snapshot.suffix=
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: packages
+          path: |
+            target/*.deb
+            target/rpm/*/RPMS/*/*.rpm
+          if-no-files-found: error
