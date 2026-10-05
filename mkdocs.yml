@@ -6,6 +6,7 @@ docs_dir: doc
 theme: readthedocs
 strict: true
 nav:
+  - Install and use: index.md
   - The transport: transport.md
   - The homeserver: homeserver.md
   - Decisions: decisions.md

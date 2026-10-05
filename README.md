@@ -4,60 +4,13 @@ The Matrix transport for Sokar: the tasks of a project talk in one Matrix room, 
 write in it with any Matrix client. Sokar runs the transport itself; you install it and name it in a
 project.
 
+**How to install and use it: [the Matrix chapter of Sokar's documentation](https://sokar-ai.github.io/matrix/).**
+
 ## Install
 
-From the same package repository as Sokar, the transport and - for a homeserver on this machine - the
-local homeserver:
+From the same package repository as Sokar:
 
     sudo apt-get install sokar-message-transport-matrix sokar-matrix-homeserver
-
-Sokar's "new machine" setup offers both. The homeserver is never pulled in by the transport, so a machine
-that uses a central homeserver does not get one.
-
-## Use it in a project
-
-In the project's `project.yml`:
-
-```yaml
-mail:
-  transports:
-    matrix: {}
-```
-
-That is all for the local homeserver: the project's first task start brings it up, makes the project's
-room and an account for each task. Each task is then a peer the others can write to.
-
-For a homeserver elsewhere, name it, and say how its certificate is trusted if it is not from a public
-authority:
-
-| Setting | What |
-|---|---|
-| `homeserver` | The homeserver's URL, e.g. `https://matrix.example.org`; plain `http` only on this machine's loopback. Absent: this machine's own |
-| `ca_file` | An absolute path to a PEM file: an intranet's CA, or a self-signed server's certificate |
-| `tls_verify` | `off` checks no certificate. For development only, never for use |
-
-A setting the transport does not know is refused, and so is a relative `ca_file`; the interface's
-editor says so before anything is committed.
-
-## Read along and write as a person
-
-    sokar talk join <project> <your name>
-
-prints a login, once: the homeserver, your user, the room and a password. On the local homeserver,
-forward its port (8008 unless taken) to reach it from your computer, and sign in with any Matrix client.
-`--reset` gives you a new password.
-
-What you write in the room reaches every task of the project. Mention a task (pick it from your client's
-list) or reply to its message to say it is meant for that one. To write to one task alone, open a direct
-chat with its account from the room's member list, with encryption switched off (nheko and Element turn
-it on by default, and a task cannot read an encrypted chat: it declines one and says why). The task's
-answer to you appears there.
-
-## More
-
-- [The local homeserver](doc/homeserver.md): where it keeps its data, its settings, and how to reset it.
-- [The transport](https://github.com/sokar-ai/sokar-message-matrix/blob/main/doc/transport.md): the program's verbs and exit codes, as Sokar runs it.
-- [Decisions](https://github.com/sokar-ai/sokar-message-matrix/blob/main/doc/decisions.md): why it is built this way, and the risks accepted.
 
 ## Build
 
