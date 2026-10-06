@@ -1,5 +1,10 @@
 # sokar-message-matrix
 
+<img src="doc/images/early-bird.svg" width="350" alt="Early bird - work in progress">
+
+> **Early bird - work in progress.** Sokar is not stable yet: until release 1.0.0, its code, commands
+> and file formats can change without notice.
+
 The Matrix transport for Sokar: the tasks of a project talk in one Matrix room, and a person can read and
 write in it with any Matrix client. Sokar runs the transport itself; you install it and name it in a
 project.
