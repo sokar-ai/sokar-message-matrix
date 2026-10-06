@@ -1,11 +1,15 @@
 name: Build
 
+# A change to documents alone builds nothing and is checked by the shared-rules workflow; a tag's push
+# is never filtered by path.
 on:
   push:
     branches: [main]
     # A release is a tag v<version>, and nothing else.
     tags: ['v*']
+    paths-ignore: ['**/*.md', 'doc/**', 'issues/**', 'mkdocs.yml']
   pull_request:
+    paths-ignore: ['**/*.md', 'doc/**', 'issues/**', 'mkdocs.yml']
 
 permissions:
   contents: read
@@ -55,11 +59,6 @@ jobs:
         run: >-
           java -cp "$(cat "$RUNNER_TEMP/ci-tools.classpath")"
           org.fuin.sokar.release.Main check-actions .github
-
-      - name: Refuse a shared rules block whose hash does not fit its text
-        run: >-
-          java -cp "$(cat "$RUNNER_TEMP/ci-tools.classpath")"
-          org.fuin.sokar.release.Main check-shared AGENTS.md
 
       # main publishes snapshots and a tag a release; each refuses the other's version, so a release is
       # never a snapshot by mistake and a snapshot never takes a release's number.

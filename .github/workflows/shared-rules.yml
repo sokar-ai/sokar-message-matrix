@@ -1,0 +1,62 @@
+name: Shared rules
+
+# What every change needs, documents alone included, which the build skips: the shared rules block, the
+# citations of issues in any file, the documentation chapter, and the tests that read a document. On a
+# runner of GitHub's own, and on every path, since a citation can land in any file.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: shared-rules-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    # GitHub's default is six hours, every minute of it paid; the checks and the tagged tests take a few.
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.m2/repository
+            ~/.m2/wrapper
+          key: maven-${{ hashFiles('pom.xml', '.mvn/wrapper/maven-wrapper.properties') }}
+          restore-keys: maven-
+
+      # As in the build: the runner's own Java only runs the tools, which install the pinned GraalVM.
+      - name: Resolve the build's tools
+        run: |
+          test -n "${JAVA_HOME_25_X64:-}" || { echo "the runner has no Java 25 (JAVA_HOME_25_X64)"; exit 1; }
+          JAVA_HOME="$JAVA_HOME_25_X64" ./mvnw -B -ntp -q -U -s settings.xml -Pci-tools dependency:build-classpath \
+            -Dmdep.outputFile="$RUNNER_TEMP/ci-tools.classpath"
+
+      - name: Install the pinned GraalVM
+        run: >-
+          "$JAVA_HOME_25_X64/bin/java" -cp "$(cat "$RUNNER_TEMP/ci-tools.classpath")"
+          org.fuin.sokar.machines.Main jdk --github
+
+      - name: Refuse a shared rules block whose hash does not fit its text
+        run: >-
+          java -cp "$(cat "$RUNNER_TEMP/ci-tools.classpath")"
+          org.fuin.sokar.release.Main check-shared AGENTS.md
+
+      - name: Refuse a link to an issue's file and an issue number in any file
+        run: >-
+          java -cp "$(cat "$RUNNER_TEMP/ci-tools.classpath")"
+          org.fuin.sokar.release.Main check-citations .
+
+      - name: Refuse a page missing from the site's navigation or a link out of doc
+        run: >-
+          java -cp "$(cat "$RUNNER_TEMP/ci-tools.classpath")"
+          org.fuin.sokar.release.Main check-doc-site doc mkdocs.yml
+
+      - name: The tests that read a document
+        run: ./mvnw -B -ntp -s settings.xml -Pdocuments test
