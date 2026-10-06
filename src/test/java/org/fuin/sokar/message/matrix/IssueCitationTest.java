@@ -16,12 +16,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /**
  * Code, tests and everything that ships never cite an issue number, of this repository or another: an issue
  * is deleted once it is finished, and its number then points at nothing. They state the constraint itself.
  */
+@Tag("documents")
 class IssueCitationTest {
 
     private static final Path ROOT = Path.of("");

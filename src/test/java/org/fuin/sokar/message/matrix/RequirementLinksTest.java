@@ -16,6 +16,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.Test;
  * deleted, and so is an issue closed unbuilt, and a link to the file breaks on both while one to the
  * index does not. Nothing else notices a broken link until somebody follows it.
  */
+@Tag("documents")
 class RequirementLinksTest {
 
     private static final Path ROOT = Path.of("");
