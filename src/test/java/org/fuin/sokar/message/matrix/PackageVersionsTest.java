@@ -41,7 +41,9 @@ class PackageVersionsTest {
         }
 
         assertThat(version).as("the project's version").matches("[0-9]+\\.[0-9]+\\.[0-9]+");
-        assertThat(deb).as("the .debs' version").startsWith(version + "~");
+        // A snapshot's packages are version~snapshot.<run><suffix>; on a release tag the build writes the
+        // version itself into deb.version, and the packages carry nothing else.
+        assertThat(deb).as("the .debs' version").matches(java.util.regex.Pattern.quote(version) + "(~snapshot\\..*)?");
         // The transport's and the homeserver's: a guard that found none would pass forever.
         assertThat(rpmVersions).as("the .rpms' versions").hasSize(2).containsOnly(version);
     }
