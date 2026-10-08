@@ -1,6 +1,7 @@
 name: Build
+run-name: "${{ github.workflow }} · ${{ github.ref_name }}: ${{ github.event.head_commit.message || github.event.pull_request.title || github.workflow }}"
 
-# A change to documents alone builds nothing and is checked by the shared-rules workflow; a tag's push
+# A change to documents alone builds nothing and is checked by the Shared rules check; a tag's push
 # is never filtered by path.
 on:
   push:
