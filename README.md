@@ -7,7 +7,8 @@
 
 The Matrix transport for Sokar: the tasks of a project talk in one Matrix room, and a person can read and
 write in it with any Matrix client. Sokar runs the transport itself; you install it and name it in a
-project.
+project. It decides nothing about what may pass and never parses a message - that is the filter's, in
+`sokar-message-sluice`.
 
 **How to install and use it: [the Matrix chapter of Sokar's documentation](https://sokar-ai.github.io/matrix/).**
 

@@ -81,6 +81,15 @@ jobs:
             echo "args=-Dsokar.snapshot.run=${{ github.run_number }} -Dsokar.snapshot.suffix=" >> "$GITHUB_OUTPUT"
           fi
 
+      # A release depends only on releases: every version in the effective pom - parent, dependencies, the
+      # BOM's managed ones, plugins and their dependencies, inactive profiles too - read as Maven resolved it.
+      - name: Refuse a snapshot among what a release is built with
+        if: github.ref_type == 'tag'
+        run: |
+          ./mvnw -B -ntp -q -s settings.xml help:effective-pom -Doutput="$RUNNER_TEMP/effective-pom.xml"
+          java -cp "$(cat "$RUNNER_TEMP/ci-tools.classpath")" org.fuin.sokar.release.Main \
+            check-releases "$RUNNER_TEMP/effective-pom.xml" --requires org.fuin.sokar:sokar-release
+
       - name: Build, test against the native executable, and package
         timeout-minutes: 20
         run: ./mvnw -B -ntp -s settings.xml -Pnative verify ${{ steps.channel.outputs.args }}

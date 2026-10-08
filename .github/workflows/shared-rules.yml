@@ -58,5 +58,10 @@ jobs:
           java -cp "$(cat "$RUNNER_TEMP/ci-tools.classpath")"
           org.fuin.sokar.release.Main check-doc-site doc mkdocs.yml
 
+      - name: Refuse a module without a README.md, or one that does not link its submodules
+        run: >-
+          java -cp "$(cat "$RUNNER_TEMP/ci-tools.classpath")"
+          org.fuin.sokar.release.Main check-readmes .
+
       - name: The tests that read a document
         run: ./mvnw -B -ntp -s settings.xml -Pdocuments test

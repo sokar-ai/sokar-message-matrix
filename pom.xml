@@ -4,15 +4,14 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- The parent rather than an import: the versions it names once are properties, and an
-         imported BOM brings only its dependency management. -->
     <parent>
         <groupId>org.fuin.sokar</groupId>
-        <artifactId>sokar-bom</artifactId>
-        <version>0.4.0</version>
+        <artifactId>sokar-parent</artifactId>
+        <version>0.1.1</version>
         <relativePath/>
     </parent>
 
+    <groupId>org.fuin.sokar</groupId>
     <artifactId>sokar-message-matrix</artifactId>
     <version>0.4.1-SNAPSHOT</version>
     <packaging>jar</packaging>
@@ -35,11 +34,10 @@
         <jspecify.version>1.0.1</jspecify.version>
         <assertj.version>3.27.7</assertj.version>
         <jackson.version>2.22.1</jackson.version>
-        <!-- Ahead of the parent's: check-citations and check-doc-site came with it. -->
-        <sokar.buildtools.version>0.4.1</sokar.buildtools.version>
         <main.class>org.fuin.sokar.message.matrix.Main</main.class>
         <transport.name>sokar-message-transport-matrix</transport.name>
         <!-- Named as sokar names its snapshots; CI sets the run and clears the local suffix. -->
+        <sokar.snapshot.run>0</sokar.snapshot.run>
         <sokar.snapshot.suffix>+local.${maven.build.timestamp}</sokar.snapshot.suffix>
         <!-- The newest glibc and zlib symbol versions the native executable needs, measured with objdump -T;
              PackagesIT checks the packages against the executable built. -->
@@ -50,8 +48,6 @@
         <package.doc>/usr/share/doc/${transport.name}</package.doc>
         <homeserver.name>sokar-matrix-homeserver</homeserver.name>
         <homeserver.unit>${project.build.directory}/homeserver/${homeserver.name}.service</homeserver.unit>
-        <jdeb.version>1.14</jdeb.version>
-        <rpm-maven-plugin.version>2.3.0</rpm-maven-plugin.version>
         <!-- What the integration tests run under -Pnative. -->
         <transport.executable>${project.build.directory}/${transport.name}</transport.executable>
     </properties>
@@ -84,32 +80,6 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.15.0</version>
-                <configuration>
-                    <release>${java.release.version}</release>
-                    <compilerArgs>
-                        <arg>-XDcompilePolicy=simple</arg>
-                        <arg>-XDaddTypeAnnotationsToSymbol=true</arg>
-                        <arg>--should-stop=ifError=FLOW</arg>
-                        <arg>-Xplugin:ErrorProne -XepDisableAllChecks -Xep:NullAway:ERROR -XepExcludedPaths:.*/src/test/.* -XepOpt:NullAway:OnlyNullMarked=true</arg>
-                    </compilerArgs>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>com.google.errorprone</groupId>
-                            <artifactId>error_prone_core</artifactId>
-                            <version>${error-prone.version}</version>
-                        </path>
-                        <path>
-                            <groupId>com.uber.nullaway</groupId>
-                            <artifactId>nullaway</artifactId>
-                            <version>${nullaway.version}</version>
-                        </path>
-                    </annotationProcessorPaths>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>3.5.5</version>
             </plugin>
@@ -117,7 +87,6 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>
-                <version>${maven-failsafe-plugin.version}</version>
                 <executions>
                     <execution>
                         <goals>
@@ -143,22 +112,6 @@
     </build>
 
     <profiles>
-        <!-- The build's own tools, resolved by Maven so CI can run them before the pinned JDK is there:
-             sokar-machines installs that JDK, sokar-release refuses an unpinned action. Their versions
-             come from the parent. -->
-        <profile>
-            <id>ci-tools</id>
-            <dependencies>
-                <dependency>
-                    <groupId>org.fuin.sokar</groupId>
-                    <artifactId>sokar-machines</artifactId>
-                </dependency>
-                <dependency>
-                    <groupId>org.fuin.sokar</groupId>
-                    <artifactId>sokar-release</artifactId>
-                </dependency>
-            </dependencies>
-        </profile>
         <!-- The installed transport is a native executable, so it needs no Java at run time. -->
         <profile>
             <id>native</id>
@@ -167,7 +120,6 @@
                     <plugin>
                         <groupId>org.graalvm.buildtools</groupId>
                         <artifactId>native-maven-plugin</artifactId>
-                        <version>${native-maven-plugin.version}</version>
                         <extensions>true</extensions>
                         <configuration>
                             <imageName>${transport.name}</imageName>
@@ -192,7 +144,6 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>exec-maven-plugin</artifactId>
-                        <version>${exec-maven-plugin.version}</version>
                         <executions>
                             <execution>
                                 <id>homeserver-unit</id>
@@ -216,7 +167,6 @@
                     <plugin>
                         <groupId>org.cyclonedx</groupId>
                         <artifactId>cyclonedx-maven-plugin</artifactId>
-                        <version>${cyclonedx-maven-plugin.version}</version>
                         <executions>
                             <execution>
                                 <phase>package</phase>
@@ -229,12 +179,14 @@
                             <outputFormat>json</outputFormat>
                             <outputName>sbom.cdx</outputName>
                             <includeTestScope>false</includeTestScope>
+                            <!-- The bill goes into the packages; nothing goes to Central, which the plugin
+                                 would otherwise take as a reason to make none. -->
+                            <skipNotDeployed>false</skipNotDeployed>
                         </configuration>
                     </plugin>
                     <plugin>
                         <groupId>org.vafer</groupId>
                         <artifactId>jdeb</artifactId>
-                        <version>${jdeb.version}</version>
                         <executions>
                             <execution>
                                 <phase>package</phase>
@@ -325,7 +277,6 @@
                     <plugin>
                         <groupId>org.codehaus.mojo</groupId>
                         <artifactId>rpm-maven-plugin</artifactId>
-                        <version>${rpm-maven-plugin.version}</version>
                         <executions>
                             <execution>
                                 <id>transport-rpm</id>
@@ -454,6 +405,10 @@
                         <configuration>
                             <systemPropertyVariables>
                                 <transport.executable>${transport.executable}</transport.executable>
+                                <!-- The raw parts a package's version is made of, so a test can work it out
+                                     itself rather than read back deb.version or rpm.release. -->
+                                <sokar.snapshot.run>${sokar.snapshot.run}</sokar.snapshot.run>
+                                <sokar.snapshot.suffix>${sokar.snapshot.suffix}</sokar.snapshot.suffix>
                             </systemPropertyVariables>
                         </configuration>
                     </plugin>

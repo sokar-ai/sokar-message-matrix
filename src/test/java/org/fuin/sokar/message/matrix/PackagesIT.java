@@ -69,6 +69,39 @@ class PackagesIT {
     }
 
     @Test
+    @DisplayName("Every package built carries the project's version as the packaging maps it, read from the package")
+    void packagesCarryTheProjectsVersion() throws Exception {
+        assumeTrue(Transport.isNative(), "only a native build makes the packages");
+        final String project = javax.xml.xpath.XPathFactory.newInstance().newXPath().evaluate("/project/version",
+                javax.xml.parsers.DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(
+                        Path.of("pom.xml").toFile()));
+        final boolean snapshot = project.endsWith("-SNAPSHOT");
+        final String version = project.replaceFirst("-SNAPSHOT$", "");
+        // Worked out here from the raw parts, never read back from deb.version or rpm.release, so a mistake in
+        // the pom's mapping is not the answer it is held to.
+        final String run = System.getProperty("sokar.snapshot.run");
+        final String suffix = System.getProperty("sokar.snapshot.suffix", "");
+        assertThat(run).as("the run number the build passes to its integration tests").isNotNull();
+        final String deb = snapshot ? version + "~snapshot." + run + suffix : version;
+        final String rpm = version + " " + (snapshot ? "snapshot." + run : "1");
+        final Path rpms = TARGET.resolve("rpm");
+
+        // A plugin may take its version from a property the parent sets for something else; only the built
+        // package shows which one it took.
+        for (final String name : List.of("sokar-message-transport-matrix_", "sokar-matrix-homeserver_")) {
+            assertThat(run("dpkg-deb", "-f", newest(TARGET, name, ".deb").toString(), "Version").strip())
+                    .as("the version of %s*.deb", name).isEqualTo(deb);
+        }
+        for (final String name : List.of("sokar-message-transport-matrix-", "sokar-matrix-homeserver-")) {
+            // rpm may warn on its own lines first, about a database a query of a package file does not need.
+            final String said = run("rpm", "-qp", "--queryformat", "\n%{VERSION} %{RELEASE}",
+                    newest(rpms, name, ".rpm").toString());
+            assertThat(said.substring(said.lastIndexOf('\n') + 1).strip()).as("the version and release of %s*.rpm", name)
+                    .isEqualTo(rpm);
+        }
+    }
+
+    @Test
     @DisplayName("Both packages name the newest glibc and zlib the executable needs, measured from it with objdump -T")
     void floorsMatchTheExecutable() throws Exception {
         assumeTrue(Transport.isNative(), "only a native build makes the packages");
