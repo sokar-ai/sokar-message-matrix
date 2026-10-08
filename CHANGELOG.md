@@ -5,7 +5,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
-Initial public version.
+## [0.4.1] - 2026-10-08
 
 ### Changed
 
@@ -17,3 +17,7 @@ Initial public version.
 - Every change is checked for a `README.md` beside the `pom.xml`, saying what the transport is and is not.
 - The build takes `sokar-parent` as its parent, which holds what every Sokar repository shares; it publishes
   nothing to Maven Central.
+
+## [0.4.0] - 2026-10-05
+
+Initial public version.
