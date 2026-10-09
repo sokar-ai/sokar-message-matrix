@@ -9,6 +9,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 - Every run on GitHub is titled with its workflow's name, the branch or tag, and the commit's message; the
   workflow for the shared rules is called the Shared rules check.
+- The build takes the snapshot of `sokar-parent`, and with it the snapshot of the shared build tools; a
+  release of this repository waits until both are released and pinned.
 
 ## [0.4.1] - 2026-10-08
 
