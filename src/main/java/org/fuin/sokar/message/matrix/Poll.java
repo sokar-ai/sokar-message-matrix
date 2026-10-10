@@ -118,9 +118,33 @@ final class Poll {
                     + " no longer (" + String.join(", ", position.rooms()) + "): the homeserver was reset, or the account"
                     + " was taken out of them. Remove " + state + " to poll the rooms it is in now from their start");
         }
+        final List<String> skipped = new ArrayList<>();
         // A first sync answers at once whatever it is asked; only one from a position can wait for news.
+        final long deadline = System.nanoTime() + wait * 1_000_000_000L;
+        String from = since;
+        while (true) {
+            final long remaining = from == null ? 0 : Math.max(0, (deadline - System.nanoTime()) / 1_000_000L);
+            final int handed = once(client, self, persons, direct, remaining, from, joined, inbound, stateDir, state,
+                    skipped);
+            // A homeserver ends its wait on anything new for the account, a read receipt too, though the filter
+            // leaves it out of the answer: an answer with nothing in it is no news, and the wait goes on.
+            if (handed > 0 || !skipped.isEmpty() || from == null || wait == 0
+                    || deadline - System.nanoTime() <= 0) {
+                return skipped;
+            }
+            from = readPosition(state).since();
+        }
+    }
+
+    /**
+     * One sync from a position, waiting up to the given milliseconds: what it brings is written into inbound
+     * and the position saved after it. Answers how many messages were handed over.
+     */
+    private static int once(final MatrixClient client, final String self, final boolean persons, final boolean direct,
+            final long timeoutMillis, @Nullable final String since, final List<String> joined, final Path inbound,
+            final Path stateDir, final Path state, final List<String> skipped) throws Failure {
         final StringBuilder path = new StringBuilder("/_matrix/client/v3/sync?timeout=")
-                .append(since == null ? 0 : wait * 1000L).append("&filter=").append(MatrixClient.segment(FILTER));
+                .append(timeoutMillis).append("&filter=").append(MatrixClient.segment(FILTER));
         if (since != null) {
             path.append("&since=").append(MatrixClient.segment(since));
         }
@@ -129,7 +153,7 @@ final class Poll {
         if (next.isEmpty()) {
             throw new Failure(Exit.PROTOCOL, "the sync answered no next_batch");
         }
-        final List<String> skipped = new ArrayList<>();
+        int handed = 0;
         // A task's direct chats: answer the invitations first, so a chat a person just opened is joined now and
         // read from the next poll on.
         final Map<String, Set<String>> directRooms = new java.util.HashMap<>();
@@ -165,27 +189,32 @@ final class Poll {
                     // What the task's own account said there is its own, not a person's to hand back.
                     if (!self.equals(event.path("sender").asText(""))) {
                         final String why = Person.deliver(client, self, room.getKey(), event, inbound, stateDir, self);
-                        if (why != null) {
+                        if (why == null) {
+                            handed++;
+                        } else {
                             skipped.add(why);
                         }
                     }
                     continue;
                 }
                 if (deliver(event, inbound, stateDir)) {
+                    handed++;
                     continue;
                 }
                 // Not Sokar's own: a person's words, for the tasks it names - or said here why not.
                 final String why = persons ? Person.deliver(client, self, room.getKey(), event, inbound, stateDir, null)
                         : "not a Sokar message (poll --persons hands a person's words over): from "
                                 + event.path("sender").asText("?") + " in " + room.getKey();
-                if (why != null) {
+                if (why == null) {
+                    handed++;
+                } else {
                     skipped.add(why);
                 }
             }
         }
         writeAtomically(state, (next + "\n" + String.join("\n", joined)).strip().concat("\n")
                 .getBytes(StandardCharsets.UTF_8), stateDir);
-        return skipped;
+        return handed;
     }
 
     /**

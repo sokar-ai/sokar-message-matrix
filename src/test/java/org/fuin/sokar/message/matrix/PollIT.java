@@ -121,6 +121,35 @@ class PollIT {
                 assertThat(p.path("body").asText()).isEqualTo("said while the poll waits"));
     }
 
+    @Test
+    @DisplayName("poll --wait goes on waiting through an answer with nothing to hand over, such as a read receipt")
+    void waitingPollIsNotEndedByAReadReceipt() throws Exception {
+        tuwunel.say(alice, room, "said before the wait");
+        assertThat(poll("--persons")).as(this::stderr).isEqualTo(Exit.OK);
+        final String read = tuwunel.messages(bob, room).getLast().path("event_id").asText();
+        empty();
+
+        // A read receipt is filtered out of the answer, yet it ends the homeserver's wait: the answer comes empty.
+        final Thread others = Thread.ofVirtual().start(() -> {
+            try {
+                Thread.sleep(1000);
+                tuwunel.read(bob, room, read);
+                Thread.sleep(3000);
+                tuwunel.say(alice, room, "said after the receipt");
+            } catch (final Exception ex) {
+                throw new IllegalStateException(ex);
+            }
+        });
+        final long start = System.nanoTime();
+        assertThat(poll("--wait", "25", "--persons")).as(this::stderr).isEqualTo(Exit.OK);
+        final java.time.Duration took = java.time.Duration.ofNanos(System.nanoTime() - start);
+        others.join();
+        assertThat(persons()).as("answered with the message, not with the receipt's empty answer after %s", took)
+                .singleElement().satisfies(p -> assertThat(p.path("body").asText()).isEqualTo("said after the receipt"));
+        assertThat(took).as("answered when the message came, not when the wait ran out")
+                .isLessThan(java.time.Duration.ofSeconds(15));
+    }
+
     private int poll(final boolean persons) {
         return Transport.run(persons ? new String[] {"poll", "--into", inbound.toString(), "--persons"}
                 : new String[] {"poll", "--into", inbound.toString()}, env(bob),

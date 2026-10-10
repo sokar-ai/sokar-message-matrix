@@ -11,6 +11,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
   workflow for the shared rules is called the Shared rules check.
 - The build takes the snapshot of `sokar-parent`, and with it the snapshot of the shared build tools; a
   release of this repository waits until both are released and pinned.
+- A waiting `poll` goes on waiting through an answer that brings nothing to hand over, such as a read receipt,
+  so a message that comes just after one is handed over at once, not at Sokar's next look seconds later.
 
 ## [0.4.1] - 2026-10-08
 
